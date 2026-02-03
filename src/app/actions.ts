@@ -17,8 +17,9 @@ export async function uploadFoodImage(formData: FormData): Promise<FoodAnalysis 
   try {
     const analysis = await analyzeImage(base64);
     return analysis;
-  } catch (e) {
-    console.error(e);
-    return { error: "Failed to analyze image." };
+  } catch (e: any) {
+    console.error("Vision Error:", e);
+    // Return the actual error message for debugging
+    return { error: e.message || "Failed to analyze image." };
   }
 }
