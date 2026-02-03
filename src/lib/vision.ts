@@ -20,12 +20,29 @@ export async function analyzeImage(base64Image: string): Promise<FoodAnalysis> {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
-  // TEST MODE: Switch to text-only model to verify API Key access
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  // Trying user-suggested model name
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `
+    Analyze this food image. Return ONLY raw JSON (no markdown).
+    Format:
+    {
+      "food_name": "string",
+      "calories_approx": number,
+      "macros": { "protein": number, "carbs": number, "fat": number },
+      "health_score_1_to_10": number,
+      "coach_tip": "short vibe-coded advice (direct, punchy, like a gym bro coach)"
+    }
+  `;
+
+  // Strip prefix if present (e.g. "data:image/jpeg;base64,")
+  const cleanBase64 = base64Image.split(',').pop() || base64Image;
 
   try {
-    // IGNORE THE IMAGE FOR A SECOND. Just check if the key works.
-    const result = await model.generateContent("Return this JSON: {\"food_name\": \"API TEST PASSED\", \"calories_approx\": 0, \"macros\": {\"protein\":0,\"carbs\":0,\"fat\":0}, \"health_score_1_to_10\": 10, \"coach_tip\": \"Key works! Now we debug Vision.\"}");
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: cleanBase64, mimeType: "image/jpeg" } },
+    ]);
 
     const responseText = result.response.text();
     
