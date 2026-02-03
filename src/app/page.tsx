@@ -1,106 +1,139 @@
-
 "use client";
 
 import { useState } from "react";
-import { type FoodAnalysis } from "@/lib/vision";
-import { uploadFoodImage } from "@/app/actions";
+import { type FoodAnalysis, type IdentificationResult, type AnalysisGoal } from "@/lib/vision";
+import { identifyFoodAction, analyzeFoodAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Loader2, Leaf } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Camera, Loader2, Leaf, ChefHat, Flame, HeartPulse, CheckCircle2, ArrowRight } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
+type AppState = "IDLE" | "IDENTIFYING" | "CONFIRMATION" | "ANALYZING" | "RESULT";
+
 export default function SnapCoachHome() {
+  const [state, setState] = useState<AppState>("IDLE");
   const [image, setImage] = useState<string | null>(null);
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Data State
+  const [identification, setIdentification] = useState<IdentificationResult | null>(null);
+  const [userContext, setUserContext] = useState("");
+  const [selectedGoal, setSelectedGoal] = useState<AnalysisGoal>("health");
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset previous state
-    setError(null);
-    setAnalysis(null);
-    setFileToUpload(file);
-
-    // Preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImage(reader.result as string);
+      setFileToUpload(file);
+      setState("IDLE");
+      setError(null);
+      setIdentification(null);
+      setAnalysis(null);
+      setUserContext("");
     };
     reader.readAsDataURL(file);
   };
 
-  const handleAnalyze = async () => {
-    if (!fileToUpload) return;
+  const compressFile = async (file: File) => {
+    const options = { maxSizeMB: 1, maxWidthOrHeight: 1024, useWebWorker: true };
+    return await imageCompression(file, options);
+  };
 
-    setLoading(true);
+  const startIdentification = async () => {
+    if (!fileToUpload) return;
+    setState("IDENTIFYING");
     setError(null);
-    
+
     try {
-      // Compress Image (Critical for Vercel 4.5MB limit)
-      const options = {
-        maxSizeMB: 1, // Max 1MB
-        maxWidthOrHeight: 1024, // Max 1024px
-        useWebWorker: true,
-      };
-      
-      const compressedFile = await imageCompression(fileToUpload, options);
-      
+      const compressed = await compressFile(fileToUpload);
       const formData = new FormData();
-      formData.append("image", compressedFile);
-      
-      const result = await uploadFoodImage(formData);
+      formData.append("image", compressed);
+
+      const result = await identifyFoodAction(formData);
       
       if ('error' in result) {
-        console.error(result.error);
         setError(result.error);
+        setState("IDLE");
       } else {
-        setAnalysis(result);
+        setIdentification(result);
+        setState("CONFIRMATION");
       }
     } catch (err) {
-      console.error("Analysis failed", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error(err);
+      setError("Identification failed.");
+      setState("IDLE");
     }
   };
 
+  const startFinalAnalysis = async () => {
+    if (!fileToUpload) return;
+    setState("ANALYZING");
+    setError(null);
+
+    try {
+      const compressed = await compressFile(fileToUpload);
+      const formData = new FormData();
+      formData.append("image", compressed);
+
+      const fullContext = `Detected: ${identification?.detected_ingredients.join(", ")}. User Notes: ${userContext}`;
+      
+      const result = await analyzeFoodAction(formData, fullContext, selectedGoal);
+      
+      if ('error' in result) {
+        setError(result.error);
+        setState("CONFIRMATION");
+      } else {
+        setAnalysis(result);
+        setState("RESULT");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Analysis failed.");
+      setState("CONFIRMATION");
+    }
+  };
+
+  const reset = () => {
+    setImage(null);
+    setFileToUpload(null);
+    setAnalysis(null);
+    setIdentification(null);
+    setState("IDLE");
+    setError(null);
+  };
+
   return (
-    <main className="min-h-screen bg-neutral-950 text-white p-6 max-w-md mx-auto font-sans">
+    <main className="min-h-screen bg-neutral-950 text-white p-6 max-w-md mx-auto font-sans pb-24">
       {/* Header */}
-      <header className="flex items-center justify-between mb-8">
+      <header className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Leaf className="text-green-400" />
           <h1 className="text-xl font-bold tracking-tight">SnapCoach</h1>
         </div>
-        <Badge variant="outline" className="border-neutral-800 text-neutral-400">
-          Beta
-        </Badge>
+        <Badge variant="outline" className="border-neutral-800 text-neutral-400">Beta</Badge>
       </header>
 
-      {/* Main Action Area */}
       <div className="space-y-6">
         
-        {/* Upload/Preview Card */}
-        <Card className="bg-neutral-900 border-neutral-800 overflow-hidden">
+        {/* IMAGE PREVIEW CARD */}
+        <Card className="bg-neutral-900 border-neutral-800 overflow-hidden relative">
           <CardContent className="p-0">
             {image ? (
               <div className="relative aspect-square w-full">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src={image} 
-                  alt="Meal Preview" 
-                  className="w-full h-full object-cover" 
-                />
+                <img src={image} alt="Meal" className="w-full h-full object-cover" />
                 <Button 
                   size="sm" 
                   variant="secondary"
                   className="absolute top-2 right-2 bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
-                  onClick={() => { setImage(null); setFileToUpload(null); setAnalysis(null); setError(null); }}
+                  onClick={reset}
                 >
                   Clear
                 </Button>
@@ -112,47 +145,122 @@ export default function SnapCoachHome() {
                     <Camera className="w-8 h-8 text-neutral-400" />
                   </div>
                   <span className="font-medium">Snap your meal</span>
-                  <span className="text-xs text-neutral-600">Tap to upload</span>
                 </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  onChange={handleImageSelect}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
               </label>
             )}
           </CardContent>
         </Card>
 
-        {/* Action Button */}
-        {image && !analysis && !loading && (
-          <Button 
-            className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-6 text-lg animate-in fade-in zoom-in duration-300"
-            onClick={handleAnalyze}
-          >
-            Upload & Analyze
-          </Button>
-        )}
-
-        {/* Analysis Result */}
-        {loading && (
-          <div className="flex flex-col items-center py-8 gap-3 text-neutral-500 animate-pulse">
-            <Loader2 className="w-6 h-6 animate-spin" />
-            <span className="text-sm">Analyzing vibes & nutrients...</span>
-          </div>
-        )}
-
+        {/* ERROR STATE */}
         {error && (
-          <div className="p-4 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400 text-center text-sm">
+          <div className="p-4 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400 text-sm text-center">
             {error}
           </div>
         )}
 
-        {analysis && !loading && (
-          <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+        {/* STATE: IDLE (Start Analysis) */}
+        {state === "IDLE" && image && (
+          <Button 
+            className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-6 text-lg animate-in fade-in zoom-in"
+            onClick={startIdentification}
+          >
+            Identify Ingredients
+          </Button>
+        )}
+
+        {/* STATE: IDENTIFYING (Loading Step 1) */}
+        {state === "IDENTIFYING" && (
+          <div className="flex flex-col items-center py-8 gap-3 text-neutral-500 animate-pulse">
+            <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            <span className="text-sm">Scanning ingredients...</span>
+          </div>
+        )}
+
+        {/* STATE: CONFIRMATION (Interactive Step) */}
+        {state === "CONFIRMATION" && identification && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
             
-            {/* Top Stat Card */}
+            {/* Ingredients List */}
+            <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
+              <h3 className="text-neutral-400 text-xs uppercase font-bold mb-3 tracking-wide">I can see:</h3>
+              <div className="flex flex-wrap gap-2">
+                {identification.detected_ingredients.map((ing, i) => (
+                  <Badge key={i} variant="secondary" className="bg-neutral-800 text-neutral-200 hover:bg-neutral-700">
+                    <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" />
+                    {ing}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Question / User Input */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="mt-1 bg-green-500/10 p-2 rounded-full">
+                  <Leaf className="w-4 h-4 text-green-500" />
+                </div>
+                <div className="text-sm text-neutral-300">
+                  <span className="font-bold block text-white mb-1">Just checking:</span>
+                  {identification.missing_info_question || "Is there anything hidden I missed? (Sauces, fillings?)"}
+                </div>
+              </div>
+              <Textarea 
+                placeholder="e.g. It has mayo and extra cheese..." 
+                value={userContext}
+                onChange={(e) => setUserContext(e.target.value)}
+                className="bg-neutral-900 border-neutral-800 text-white resize-none"
+              />
+            </div>
+
+            {/* Goal Selection */}
+            <div className="space-y-3">
+              <h3 className="text-neutral-400 text-xs uppercase font-bold tracking-wide">Choose your goal:</h3>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setSelectedGoal("health")}
+                  className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedGoal === "health" ? "bg-green-500/20 border-green-500 text-green-400" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800"}`}
+                >
+                  <HeartPulse className="w-5 h-5" />
+                  <span className="text-xs font-medium">Health</span>
+                </button>
+                <button
+                  onClick={() => setSelectedGoal("cooking")}
+                  className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedGoal === "cooking" ? "bg-orange-500/20 border-orange-500 text-orange-400" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800"}`}
+                >
+                  <ChefHat className="w-5 h-5" />
+                  <span className="text-xs font-medium">Chef</span>
+                </button>
+                <button
+                  onClick={() => setSelectedGoal("roast")}
+                  className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedGoal === "roast" ? "bg-red-500/20 border-red-500 text-red-400" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800"}`}
+                >
+                  <Flame className="w-5 h-5" />
+                  <span className="text-xs font-medium">Roast</span>
+                </button>
+              </div>
+            </div>
+
+            <Button 
+              className="w-full bg-white text-black hover:bg-neutral-200 font-bold py-6"
+              onClick={startFinalAnalysis}
+            >
+              Get Advice <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        )}
+
+        {/* STATE: ANALYZING (Final Loader) */}
+        {state === "ANALYZING" && (
+          <div className="flex flex-col items-center py-8 gap-3 text-neutral-500 animate-pulse">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+            <span className="text-sm">Cooking up insights...</span>
+          </div>
+        )}
+
+        {/* STATE: RESULT (Final Card) */}
+        {state === "RESULT" && analysis && (
+          <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
             <Card className="bg-neutral-900 border-neutral-800">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -188,21 +296,32 @@ export default function SnapCoachHome() {
               </CardContent>
             </Card>
 
-            {/* Coach Tip */}
-            <Card className="bg-gradient-to-br from-indigo-950/50 to-purple-950/30 border-indigo-500/20">
+            <Card className={`
+              border bg-gradient-to-br
+              ${selectedGoal === 'health' ? 'from-green-950/30 to-emerald-950/10 border-green-500/20' : 
+                selectedGoal === 'cooking' ? 'from-orange-950/30 to-yellow-950/10 border-orange-500/20' : 
+                'from-red-950/30 to-pink-950/10 border-red-500/20'}
+            `}>
               <CardContent className="p-4 flex gap-3">
-                <div className="text-xl">🤖</div>
-                <div className="text-sm text-indigo-200">
-                  <span className="font-bold text-indigo-100 block mb-1">Coach Says:</span>
+                <div className="text-xl mt-1">
+                  {selectedGoal === 'health' ? '🥗' : selectedGoal === 'cooking' ? '👨‍🍳' : '🔥'}
+                </div>
+                <div className="text-sm text-neutral-200">
+                  <span className={`font-bold block mb-1 capitalize
+                    ${selectedGoal === 'health' ? 'text-green-400' : 
+                      selectedGoal === 'cooking' ? 'text-orange-400' : 
+                      'text-red-400'}
+                  `}>
+                    {selectedGoal} Insight:
+                  </span>
                   &quot;{analysis.coach_tip}&quot;
                 </div>
               </CardContent>
             </Card>
 
-            <Button className="w-full bg-white text-black hover:bg-neutral-200 font-medium">
-              Log Meal
+            <Button className="w-full bg-neutral-800 text-white hover:bg-neutral-700">
+              Log Meal (Coming Soon)
             </Button>
-
           </div>
         )}
 
