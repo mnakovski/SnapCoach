@@ -12,6 +12,7 @@ import { Camera, Loader2, Leaf } from "lucide-react";
 export default function SnapCoachHome() {
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +28,7 @@ export default function SnapCoachHome() {
 
     // Analysis via Server Action
     setLoading(true);
+    setError(null);
     setAnalysis(null);
     
     try {
@@ -37,12 +39,13 @@ export default function SnapCoachHome() {
       
       if ('error' in result) {
         console.error(result.error);
-        // Could show error toast here
+        setError(result.error);
       } else {
         setAnalysis(result);
       }
     } catch (err) {
       console.error("Analysis failed", err);
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -109,6 +112,12 @@ export default function SnapCoachHome() {
           <div className="flex flex-col items-center py-8 gap-3 text-neutral-500 animate-pulse">
             <Loader2 className="w-6 h-6 animate-spin" />
             <span className="text-sm">Analyzing vibes & nutrients...</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-4 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400 text-center text-sm">
+            {error}
           </div>
         )}
 
