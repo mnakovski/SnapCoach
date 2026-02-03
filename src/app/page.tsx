@@ -12,24 +12,33 @@ import imageCompression from 'browser-image-compression';
 
 export default function SnapCoachHome() {
   const [image, setImage] = useState<string | null>(null);
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Preview immediately
+    // Reset previous state
+    setError(null);
+    setAnalysis(null);
+    setFileToUpload(file);
+
+    // Preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImage(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAnalyze = async () => {
+    if (!fileToUpload) return;
 
     setLoading(true);
     setError(null);
-    setAnalysis(null);
     
     try {
       // Compress Image (Critical for Vercel 4.5MB limit)
@@ -39,7 +48,7 @@ export default function SnapCoachHome() {
         useWebWorker: true,
       };
       
-      const compressedFile = await imageCompression(file, options);
+      const compressedFile = await imageCompression(fileToUpload, options);
       
       const formData = new FormData();
       formData.append("image", compressedFile);
@@ -91,7 +100,7 @@ export default function SnapCoachHome() {
                   size="sm" 
                   variant="secondary"
                   className="absolute top-2 right-2 bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
-                  onClick={() => { setImage(null); setAnalysis(null); }}
+                  onClick={() => { setImage(null); setFileToUpload(null); setAnalysis(null); setError(null); }}
                 >
                   Clear
                 </Button>
@@ -109,12 +118,22 @@ export default function SnapCoachHome() {
                   type="file" 
                   accept="image/*" 
                   className="hidden" 
-                  onChange={handleImageUpload}
+                  onChange={handleImageSelect}
                 />
               </label>
             )}
           </CardContent>
         </Card>
+
+        {/* Action Button */}
+        {image && !analysis && !loading && (
+          <Button 
+            className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-6 text-lg animate-in fade-in zoom-in duration-300"
+            onClick={handleAnalyze}
+          >
+            Upload & Analyze
+          </Button>
+        )}
 
         {/* Analysis Result */}
         {loading && (
