@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { type FoodAnalysis, type IdentificationResult, type AnalysisGoal } from "@/lib/vision";
 import { identifyFoodAction, analyzeFoodAction } from "@/app/actions";
+import { useMealHistory } from "@/hooks/useMealHistory";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Camera, Loader2, Leaf, ChefHat, Flame, HeartPulse, CheckCircle2, ArrowRight } from "lucide-react";
+import { Camera, Loader2, Leaf, ChefHat, Flame, HeartPulse, CheckCircle2, ArrowRight, History, Trash2, X } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
 type AppState = "IDLE" | "IDENTIFYING" | "CONFIRMATION" | "ANALYZING" | "RESULT";
@@ -24,6 +25,32 @@ export default function SnapCoachHome() {
   const [selectedGoal, setSelectedGoal] = useState<AnalysisGoal>("health");
   const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null);
 
+  // History Hook
+  const { history, logMeal, clearHistory } = useMealHistory();
+  const [showHistory, setShowHistory] = useState(false);
+
+  const reset = () => {
+    setImage(null);
+    setFileToUpload(null);
+    setAnalysis(null);
+    setIdentification(null);
+    setState("IDLE");
+    setError(null);
+    setShowHistory(false);
+  };
+
+  const handleLogMeal = () => {
+    if (analysis && image) {
+      logMeal(analysis, image);
+      setShowHistory(true);
+      // Clean up analysis state but keep history open
+      setAnalysis(null);
+      setIdentification(null);
+      setState("IDLE");
+      setImage(null);
+    }
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -37,6 +64,7 @@ export default function SnapCoachHome() {
       setIdentification(null);
       setAnalysis(null);
       setUserContext("");
+      setShowHistory(false);
     };
     reader.readAsDataURL(file);
   };
@@ -100,15 +128,6 @@ export default function SnapCoachHome() {
     }
   };
 
-  const reset = () => {
-    setImage(null);
-    setFileToUpload(null);
-    setAnalysis(null);
-    setIdentification(null);
-    setState("IDLE");
-    setError(null);
-  };
-
   return (
     <main className="min-h-screen bg-neutral-950 text-white p-6 max-w-md mx-auto font-sans pb-24">
       {/* Header */}
@@ -117,7 +136,12 @@ export default function SnapCoachHome() {
           <Leaf className="text-green-400" />
           <h1 className="text-xl font-bold tracking-tight">SnapCoach</h1>
         </div>
-        <Badge variant="outline" className="border-neutral-800 text-neutral-400">Beta</Badge>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setShowHistory(true)}>
+            <History className="w-5 h-5 text-neutral-400 hover:text-white" />
+          </Button>
+          <Badge variant="outline" className="border-neutral-800 text-neutral-400">Beta</Badge>
+        </div>
       </header>
 
       <div className="space-y-6">
@@ -328,66 +352,66 @@ export default function SnapCoachHome() {
           </div>
         )}
 
-          {/* History Drawer */}
-          {showHistory && (
-            <div className="fixed inset-0 bg-neutral-950 z-50 overflow-y-auto animate-in slide-in-from-right-full">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <History className="w-5 h-5 text-neutral-400" />
-                    Meal History
-                  </h2>
-                  <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}>
-                    <X className="w-6 h-6" />
-                  </Button>
-                </div>
+        {/* History Drawer */}
+        {showHistory && (
+          <div className="fixed inset-0 bg-neutral-950 z-50 overflow-y-auto animate-in slide-in-from-right-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <History className="w-5 h-5 text-neutral-400" />
+                  Meal History
+                </h2>
+                <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}>
+                  <X className="w-6 h-6" />
+                </Button>
+              </div>
 
-                {history.length === 0 ? (
-                  <div className="text-center py-12 text-neutral-500">
-                    <p>No meals logged yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {history.map((entry) => (
-                      <Card key={entry.id} className="bg-neutral-900 border-neutral-800 overflow-hidden">
-                        <div className="flex">
-                          <div className="w-24 h-24 flex-shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={entry.image} alt="Meal" className="w-full h-full object-cover" />
+              {history.length === 0 ? (
+                <div className="text-center py-12 text-neutral-500">
+                  <p>No meals logged yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {history.map((entry) => (
+                    <Card key={entry.id} className="bg-neutral-900 border-neutral-800 overflow-hidden">
+                      <div className="flex">
+                        <div className="w-24 h-24 flex-shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={entry.image} alt="Meal" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="p-3 flex-1">
+                          <div className="flex justify-between items-start">
+                            <h3 className="font-bold text-sm text-white line-clamp-1">{entry.analysis.food_name}</h3>
+                            <span className="text-xs text-neutral-500">
+                              {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
-                          <div className="p-3 flex-1">
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-bold text-sm text-white line-clamp-1">{entry.analysis.food_name}</h3>
-                              <span className="text-xs text-neutral-500">
-                                {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <div className="mt-1 text-xs text-neutral-400 flex gap-2">
-                              <span>{entry.analysis.calories_approx} kcal</span>
-                              <span>•</span>
-                              <span>{entry.analysis.macros.protein}g P</span>
-                            </div>
-                            <div className="mt-2 text-xs text-neutral-500 line-clamp-2">
-                              "{entry.analysis.coach_tip}"
-                            </div>
+                          <div className="mt-1 text-xs text-neutral-400 flex gap-2">
+                            <span>{entry.analysis.calories_approx} kcal</span>
+                            <span>•</span>
+                            <span>{entry.analysis.macros.protein}g P</span>
+                          </div>
+                          <div className="mt-2 text-xs text-neutral-500 line-clamp-2">
+                            "{entry.analysis.coach_tip}"
                           </div>
                         </div>
-                      </Card>
-                    ))}
+                      </div>
+                    </Card>
+                  ))}
 
-                    <Button 
-                      variant="destructive" 
-                      className="w-full mt-8 bg-red-950/20 text-red-500 hover:bg-red-950/40 border border-red-900/50"
-                      onClick={clearHistory}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Clear History
-                    </Button>
-                  </div>
-                )}
-              </div>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full mt-8 bg-red-950/20 text-red-500 hover:bg-red-950/40 border border-red-900/50"
+                    onClick={clearHistory}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear History
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
       </div>
     </main>
