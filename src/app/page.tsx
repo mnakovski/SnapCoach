@@ -168,7 +168,7 @@ export default function SnapCoachHome() {
                   <div className="p-4 bg-neutral-800 rounded-full">
                     <Camera className="w-8 h-8 text-neutral-400" />
                   </div>
-                  <span className="font-medium">Snap your meal</span>
+                  <span className="font-medium">Сликај оброк</span>
                 </div>
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
               </label>
@@ -189,15 +189,15 @@ export default function SnapCoachHome() {
             className="w-full bg-green-500 hover:bg-green-600 text-black font-bold py-6 text-lg animate-in fade-in zoom-in"
             onClick={startIdentification}
           >
-            Identify Ingredients
+            Идентификувај Состојки
           </Button>
         )}
 
         {/* STATE: IDENTIFYING (Loading Step 1) */}
         {state === "IDENTIFYING" && (
-          <div className="flex flex-col items-center py-8 gap-3 text-neutral-500 animate-pulse">
+          <div className="flex flex-col items-center gap-3 text-neutral-500">
             <Loader2 className="w-8 h-8 animate-spin text-green-500" />
-            <span className="text-sm">Scanning ingredients...</span>
+            <span className="text-sm">Скенирам состојки...</span>
           </div>
         )}
 
@@ -207,7 +207,7 @@ export default function SnapCoachHome() {
             
             {/* Ingredients List */}
             <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-800">
-              <h3 className="text-neutral-400 text-xs uppercase font-bold mb-3 tracking-wide">I can see:</h3>
+              <h3 className="text-neutral-400 text-xs uppercase font-bold mb-3 tracking-wide">Гледам:</h3>
               <div className="flex flex-wrap gap-2">
                 {identification.detected_ingredients.map((ing, i) => (
                   <Badge key={i} variant="secondary" className="bg-neutral-800 text-neutral-200 hover:bg-neutral-700">
@@ -225,12 +225,12 @@ export default function SnapCoachHome() {
                   <Leaf className="w-4 h-4 text-green-500" />
                 </div>
                 <div className="text-sm text-neutral-300">
-                  <span className="font-bold block text-white mb-1">Just checking:</span>
-                  {identification.missing_info_question || "Is there anything hidden I missed? (Sauces, fillings?)"}
+                  <span className="font-bold block text-white mb-1">Само да проверам:</span>
+                  {identification.missing_info_question || "Дали има нешто што не се гледа? (Сос, полнење?)"}
                 </div>
               </div>
               <Textarea 
-                placeholder="e.g. It has mayo and extra cheese..." 
+                placeholder="Пр. Има мајонез и кашкавал..." 
                 value={userContext}
                 onChange={(e) => setUserContext(e.target.value)}
                 className="bg-neutral-900 border-neutral-800 text-white resize-none"
@@ -239,28 +239,28 @@ export default function SnapCoachHome() {
 
             {/* Goal Selection */}
             <div className="space-y-3">
-              <h3 className="text-neutral-400 text-xs uppercase font-bold tracking-wide">Choose your goal:</h3>
+              <h3 className="text-neutral-400 text-xs uppercase font-bold tracking-wide">Избери цел:</h3>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setSelectedGoal("health")}
                   className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedGoal === "health" ? "bg-green-500/20 border-green-500 text-green-400" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800"}`}
                 >
                   <HeartPulse className="w-5 h-5" />
-                  <span className="text-xs font-medium">Health</span>
+                  <span className="text-xs font-medium">Здравје</span>
                 </button>
                 <button
                   onClick={() => setSelectedGoal("cooking")}
                   className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedGoal === "cooking" ? "bg-orange-500/20 border-orange-500 text-orange-400" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800"}`}
                 >
                   <ChefHat className="w-5 h-5" />
-                  <span className="text-xs font-medium">Chef</span>
+                  <span className="text-xs font-medium">Готвач</span>
                 </button>
                 <button
                   onClick={() => setSelectedGoal("roast")}
                   className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition-all ${selectedGoal === "roast" ? "bg-red-500/20 border-red-500 text-red-400" : "bg-neutral-900 border-neutral-800 text-neutral-500 hover:bg-neutral-800"}`}
                 >
                   <Flame className="w-5 h-5" />
-                  <span className="text-xs font-medium">Roast</span>
+                  <span className="text-xs font-medium">Ремет</span>
                 </button>
               </div>
             </div>
@@ -269,16 +269,16 @@ export default function SnapCoachHome() {
               className="w-full bg-white text-black hover:bg-neutral-200 font-bold py-6"
               onClick={startFinalAnalysis}
             >
-              Get Advice <ArrowRight className="w-4 h-4 ml-2" />
+              Добиј Совет <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         )}
 
         {/* STATE: ANALYZING (Final Loader) */}
         {state === "ANALYZING" && (
-          <div className="flex flex-col items-center py-8 gap-3 text-neutral-500 animate-pulse">
+          <div className="flex flex-col items-center gap-3 text-neutral-500">
             <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-            <span className="text-sm">Cooking up insights...</span>
+            <span className="text-sm">Готвам совети...</span>
           </div>
         )}
 
@@ -290,7 +290,7 @@ export default function SnapCoachHome() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle className="text-lg text-white">{analysis.food_name}</CardTitle>
-                    <p className="text-sm text-neutral-400">Estimated ~{analysis.calories_approx} kcal</p>
+                    <p className="text-sm text-neutral-400">Проценка ~{analysis.calories_approx} kcal</p>
                   </div>
                   <div className={`
                     flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm
@@ -305,16 +305,16 @@ export default function SnapCoachHome() {
               <CardContent>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-neutral-950 p-2 rounded">
-                    <div className="text-xs text-neutral-500">Protein</div>
-                    <div className="font-mono text-sm">{analysis.macros.protein}g</div>
+                    <div className="text-xs text-neutral-500">Протеин</div>
+                    <div className="font-mono text-sm">{analysis.macros.protein}г</div>
                   </div>
                   <div className="bg-neutral-950 p-2 rounded">
-                    <div className="text-xs text-neutral-500">Carbs</div>
-                    <div className="font-mono text-sm">{analysis.macros.carbs}g</div>
+                    <div className="text-xs text-neutral-500">Јаглехидрати</div>
+                    <div className="font-mono text-sm">{analysis.macros.carbs}г</div>
                   </div>
                   <div className="bg-neutral-950 p-2 rounded">
-                    <div className="text-xs text-neutral-500">Fat</div>
-                    <div className="font-mono text-sm">{analysis.macros.fat}g</div>
+                    <div className="text-xs text-neutral-500">Масти</div>
+                    <div className="font-mono text-sm">{analysis.macros.fat}г</div>
                   </div>
                 </div>
               </CardContent>
@@ -336,7 +336,9 @@ export default function SnapCoachHome() {
                       selectedGoal === 'cooking' ? 'text-orange-400' : 
                       'text-red-400'}
                   `}>
-                    {selectedGoal} Insight:
+                    {selectedGoal === 'health' ? 'Здравствен Совет' : 
+                     selectedGoal === 'cooking' ? 'Совет за Готвење' : 
+                     'Ремет'}
                   </span>
                   &quot;{analysis.coach_tip}&quot;
                 </div>
@@ -347,7 +349,7 @@ export default function SnapCoachHome() {
               className="w-full bg-neutral-800 text-white hover:bg-neutral-700 font-medium py-6"
               onClick={handleLogMeal}
             >
-              Log Meal & View History
+              Зачувај & Историја
             </Button>
           </div>
         )}

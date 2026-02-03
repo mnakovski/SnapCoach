@@ -30,10 +30,12 @@ export async function identifyIngredients(base64Image: string): Promise<Identifi
   
   const prompt = `
     Analyze this food image. Your job is to IDENTIFY visible ingredients.
+    Output language: Macedonian (MKD).
+    
     Return ONLY raw JSON. Format:
     {
-      "detected_ingredients": ["string", "string"],
-      "missing_info_question": "string (Ask ONE short question if something is ambiguous, e.g. 'Is there sauce inside?' or 'Is that chicken or tofu?'. If everything is 100% clear, return null)",
+      "detected_ingredients": ["string (in MKD)", "string (in MKD)"],
+      "missing_info_question": "string (Ask ONE short question in Macedonian if something is ambiguous, e.g. 'Дали има сос?' or 'Дали е ова пилешко?'. If everything is 100% clear, return null)",
       "confidence_level": "high" | "medium" | "low"
     }
   `;
@@ -65,22 +67,23 @@ export async function analyzeFood(
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   let toneInstruction = "";
-  if (goal === "health") toneInstruction = "Focus on macro balance, glycemic index, and habit improvement. Practical, encouraging but firm.";
-  if (goal === "cooking") toneInstruction = "Focus on flavor profile, cooking technique, and potential ingredient swaps for better taste/texture.";
-  if (goal === "roast") toneInstruction = "Be funny, sarcastic, and roast the plating or food choice. Keep it lighthearted but spicy.";
+  if (goal === "health") toneInstruction = "Focus on macro balance, glycemic index, and habit improvement. Use emojis: ❌ (Reduce/Remove), ✅ (Good), ➕ (Add). Structure the advice as a list of these emojis followed by short Macedonian text.";
+  if (goal === "cooking") toneInstruction = "Focus on flavor profile, cooking technique, and potential ingredient swaps. Structure as: 👨‍🍳 (Steps), 🧂 (Seasoning), 🔥 (Tips). Output in Macedonian.";
+  if (goal === "roast") toneInstruction = "Be funny, sarcastic, and roast the plating or food choice. Keep it lighthearted but spicy. Output in Macedonian slang/informal.";
 
   const prompt = `
     Analyze this food image. The user has confirmed: ${userContext}.
     Goal: ${goal}.
     Tone: ${toneInstruction}
+    Output language: Macedonian (MKD).
     
     Return ONLY raw JSON. Format:
     {
-      "food_name": "string",
+      "food_name": "string (in MKD)",
       "calories_approx": number,
       "macros": { "protein": number, "carbs": number, "fat": number },
       "health_score_1_to_10": number,
-      "coach_tip": "string (The advice/roast itself)"
+      "coach_tip": "string (The advice/roast itself, formatted with emojis as requested)"
     }
   `;
 
