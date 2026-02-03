@@ -50,8 +50,9 @@ export async function analyzeImage(base64Image: string): Promise<FoodAnalysis> {
     const cleanJson = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
     
     return JSON.parse(cleanJson);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Analysis Failed:", error);
-    throw new Error("Failed to analyze food. Try again.");
+    // Return specific error for debugging
+    throw new Error(error?.message || JSON.stringify(error) || "Unknown Gemini error");
   }
 }
