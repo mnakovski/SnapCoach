@@ -20,8 +20,8 @@ export async function analyzeImage(base64Image: string): Promise<FoodAnalysis> {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
-  // Use standard model name that supports vision
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  // Use the most stable vision-capable model
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
   const prompt = `
     Analyze this food image. Return ONLY raw JSON (no markdown).
