@@ -319,11 +319,75 @@ export default function SnapCoachHome() {
               </CardContent>
             </Card>
 
-            <Button className="w-full bg-neutral-800 text-white hover:bg-neutral-700">
-              Log Meal (Coming Soon)
+            <Button 
+              className="w-full bg-neutral-800 text-white hover:bg-neutral-700 font-medium py-6"
+              onClick={handleLogMeal}
+            >
+              Log Meal & View History
             </Button>
           </div>
         )}
+
+          {/* History Drawer */}
+          {showHistory && (
+            <div className="fixed inset-0 bg-neutral-950 z-50 overflow-y-auto animate-in slide-in-from-right-full">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <History className="w-5 h-5 text-neutral-400" />
+                    Meal History
+                  </h2>
+                  <Button variant="ghost" size="icon" onClick={() => setShowHistory(false)}>
+                    <X className="w-6 h-6" />
+                  </Button>
+                </div>
+
+                {history.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-500">
+                    <p>No meals logged yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {history.map((entry) => (
+                      <Card key={entry.id} className="bg-neutral-900 border-neutral-800 overflow-hidden">
+                        <div className="flex">
+                          <div className="w-24 h-24 flex-shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={entry.image} alt="Meal" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="p-3 flex-1">
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-bold text-sm text-white line-clamp-1">{entry.analysis.food_name}</h3>
+                              <span className="text-xs text-neutral-500">
+                                {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-neutral-400 flex gap-2">
+                              <span>{entry.analysis.calories_approx} kcal</span>
+                              <span>•</span>
+                              <span>{entry.analysis.macros.protein}g P</span>
+                            </div>
+                            <div className="mt-2 text-xs text-neutral-500 line-clamp-2">
+                              "{entry.analysis.coach_tip}"
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+
+                    <Button 
+                      variant="destructive" 
+                      className="w-full mt-8 bg-red-950/20 text-red-500 hover:bg-red-950/40 border border-red-900/50"
+                      onClick={clearHistory}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Clear History
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
       </div>
     </main>
