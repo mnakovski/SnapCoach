@@ -20,8 +20,8 @@ export async function analyzeImage(base64Image: string): Promise<FoodAnalysis> {
     throw new Error("Missing GEMINI_API_KEY");
   }
 
-  // Attempting with -latest alias which often resolves versioning issues
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  // Explicitly force API version v1beta (standard for Gemini 1.5)
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1beta" });
 
   const prompt = `
     Analyze this food image. Return ONLY raw JSON (no markdown).
