@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Camera, Loader2, Leaf } from "lucide-react";
+import imageCompression from 'browser-image-compression';
 
 export default function SnapCoachHome() {
   const [image, setImage] = useState<string | null>(null);
@@ -19,21 +20,29 @@ export default function SnapCoachHome() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Preview
+    // Preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
       setImage(reader.result as string);
     };
     reader.readAsDataURL(file);
 
-    // Analysis via Server Action
     setLoading(true);
     setError(null);
     setAnalysis(null);
     
     try {
+      // Compress Image (Critical for Vercel 4.5MB limit)
+      const options = {
+        maxSizeMB: 1, // Max 1MB
+        maxWidthOrHeight: 1024, // Max 1024px
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(file, options);
+      
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", compressedFile);
       
       const result = await uploadFoodImage(formData);
       
